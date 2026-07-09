@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NJNG Gas Dashboard</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0c4a6e">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root {
+    --bg:#f0f4f8; --surface:#fff; --surface2:#edf2f7; --text:#1a202c;
+    --text2:#4a5568; --text3:#718096; --border:#e2e8f0;
+    --accent:#0891b2; --green:#38a169; --red:#e53e3e; --orange:#dd6b20; --purple:#805ad5;
+    --shadow:0 2px 10px rgba(0,0,0,0.08);
+  }
+  .dark {
+    --bg:#0f1117; --surface:#1a1f2e; --surface2:#252d3d; --text:#e2e8f0;
+    --text2:#a0aec0; --text3:#718096; --border:#2d3748; --accent:#22d3ee;
+    --shadow:0 2px 10px rgba(0,0,0,0.4);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); transition:background .2s,color .2s; }
+  header { background:linear-gradient(135deg,#0c4a6e,#0f766e); color:white; padding:22px max(18px, calc((100% - 1200px) / 2 + 18px)); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.25); }
+  .dark header { background:linear-gradient(135deg,#082f49,#0c4a6e); }
+  header h1 { font-size:1.55rem; font-weight:700; }
+  header p { opacity:.8; font-size:.83rem; margin-top:3px; }
+  .hbtn { padding:7px 15px; border-radius:8px; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.15); color:white; cursor:pointer; font-size:.8rem; font-weight:600; text-decoration:none; display:inline-block; }
+  .hbtn:hover { background:rgba(255,255,255,.28); }
+  .container { max-width:1200px; margin:0 auto; padding:26px 18px; }
+  .fbar { background:var(--surface); border-radius:12px; padding:14px 18px; margin-bottom:20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; box-shadow:var(--shadow); }
+  .fbar label { font-size:.78rem; font-weight:600; color:var(--text3); }
+  .fbar select { padding:6px 9px; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:.8rem; }
+  .fbtn { padding:6px 13px; border-radius:7px; border:none; cursor:pointer; font-size:.78rem; font-weight:600; color:white; }
+  .fbtn.reset { background:#718096; margin-left:auto; }
+  .fbtn.export { background:var(--green); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:20px; }
+  .card { background:var(--surface); border-radius:12px; padding:18px; box-shadow:var(--shadow); border-left:4px solid var(--accent); cursor:pointer; transition:transform .15s; }
+  .card:hover { transform:translateY(-2px); }
+  .card.green { border-left-color:var(--green); }
+  .card.red { border-left-color:var(--red); }
+  .card.orange { border-left-color:var(--orange); }
+  .card.purple { border-left-color:var(--purple); }
+  .card-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); font-weight:600; }
+  .card-value { font-size:1.45rem; font-weight:700; margin-top:5px; color:var(--text); }
+  .card-sub { font-size:.73rem; color:var(--text3); margin-top:3px; }
+  .detail { background:var(--surface); border-radius:12px; padding:18px 22px; margin-bottom:20px; box-shadow:var(--shadow); border:2px solid var(--accent); display:none; }
+  .detail.show { display:block; }
+  .detail h3 { font-size:.95rem; font-weight:700; color:var(--accent); margin-bottom:12px; }
+  .detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
+  .di { background:var(--surface2); border-radius:8px; padding:11px 14px; }
+  .di-label { font-size:.68rem; color:var(--text3); font-weight:600; text-transform:uppercase; }
+  .di-value { font-size:1.1rem; font-weight:700; margin-top:3px; color:var(--text); }
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px; }
+  @media(max-width:680px){.charts{grid-template-columns:1fr;}}
+  .chart-box { background:var(--surface); border-radius:12px; padding:20px; box-shadow:var(--shadow); }
+  .chart-box h3 { font-size:.86rem; font-weight:600; color:var(--text2); margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+  .chart-box svg { display:block; width:100%; overflow:visible; }
+  .full-chart { background:var(--surface); border-radius:12px; padding:20px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .full-chart h3 { font-size:.86rem; font-weight:600; color:var(--text2); margin-bottom:6px; min-height:2.4rem; display:flex; align-items:center; }
+  .full-chart svg { display:block; width:100%; overflow:visible; }
+  .tbox { background:var(--surface); border-radius:12px; padding:20px; box-shadow:var(--shadow); overflow-x:auto; }
+  .tbox h3 { font-size:.86rem; font-weight:600; color:var(--text2); margin-bottom:12px; }
+  .tbox h3 span { font-weight:400; color:var(--text3); font-size:.75rem; }
+  table { width:100%; border-collapse:collapse; font-size:.81rem; }
+  thead th { background:var(--surface2); padding:9px 11px; text-align:left; font-weight:600; color:var(--text3); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; cursor:pointer; user-select:none; }
+  thead th:hover { color:var(--accent); }
+  tbody tr { border-bottom:1px solid var(--border); cursor:pointer; transition:background .12s; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody tr.active-row { background:#e0f7fa; }
+  .dark tbody tr.active-row { background:#0e3a4a; }
+  tbody td { padding:9px 11px; color:var(--text); white-space:nowrap; }
+  [contenteditable="true"] { outline:2px solid var(--accent); border-radius:3px; background:var(--surface2); padding:1px 4px; }
+  .up { color:var(--red); font-weight:600; }
+  .dn { color:var(--green); font-weight:600; }
+  .tag { display:inline-block; padding:2px 7px; border-radius:9999px; font-size:.67rem; font-weight:600; }
+  .loading { text-align:center; padding:60px; color:var(--text3); font-size:.9rem; }
+  footer { text-align:center; padding:16px; color:var(--text3); font-size:.73rem; }
+  .tip { position:fixed; background:#1a202c; color:white; padding:6px 10px; border-radius:6px; font-size:.75rem; pointer-events:none; z-index:999; display:none; line-height:1.6; white-space:nowrap; }
+  .tag-eff-good { background:#c6f6d5; color:#276749; }
+  .tag-eff-warn { background:#fefcbf; color:#744210; }
+  .tag-eff-bad  { background:#fed7d7; color:#9b2c2c; }
+  .dark .tag-eff-good { background:#1c4532; color:#68d391; }
+  .dark .tag-eff-warn { background:#3d3000; color:#f6e05e; }
+  .dark .tag-eff-bad  { background:#4a1c1c; color:#fc8181; }
+</style>
+</head>
+<body>
+<div class="tip" id="tip"></div>
+<header>
+  <h1>NJNG Gas Dashboard 🔥</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="extract.html" class="hbtn">📄 Add Bill</a>
+    <a href="https://www.njng.com/account/login.aspx" target="_blank" class="hbtn">🔑 NJNG Login</a>
+    <a href="https://github.com/scammy37/njng-dashboard" target="_blank" class="hbtn">🐙 NJNG GitHub</a>
+    <button class="hbtn" onclick="toggleDark()">🌙 Dark Mode</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="loadingMsg" class="loading">Loading billing data…</div>
+  <div id="appContent" style="display:none;">
+
+    <div class="fbar">
+      <label>From:</label><select id="fFrom" onchange="applyFilters()"></select>
+      <label>To:</label><select id="fTo" onchange="applyFilters()"></select>
+      <label>Sort:</label>
+      <select id="fSort" onchange="applyFilters()">
+        <option value="date">Date</option>
+        <option value="therms">Therms</option>
+        <option value="cost">Cost</option>
+        <option value="days">Days</option>
+        <option value="temp">Temp</option>
+      </select>
+      <button id="dirBtn" class="fbtn" style="background:var(--accent);min-width:36px;" onclick="toggleDir()">↑ Asc</button>
+      <button class="fbtn reset" onclick="resetFilters()">↺ Reset</button>
+      <button class="fbtn export" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+
+    <div class="cards">
+      <!-- Totals -->
+      <div class="card"><div class="card-label">Total Therms</div><div class="card-value" id="cTherms">—</div><div class="card-sub" id="cThermsSub">—</div></div>
+      <div class="card orange"><div class="card-label">Total Cost</div><div class="card-value" id="cCost">—</div><div class="card-sub">Gas charges only</div></div>
+      <div class="card orange"><div class="card-label">Projected Annual Cost</div><div class="card-value" id="cProjected">—</div><div class="card-sub" id="cProjectedSub">—</div></div>
+      <!-- Averages -->
+      <div class="card purple"><div class="card-label">Avg Monthly Therms</div><div class="card-value" id="cAvg">—</div><div class="card-sub" id="cAvgSub">—</div></div>
+      <div class="card"><div class="card-label">Avg Daily Cost</div><div class="card-value" id="cDailyCost">—</div><div class="card-sub" id="cDailyCostSub">—</div></div>
+      <div class="card green"><div class="card-label">Avg Billing Cycle</div><div class="card-value" id="cCycle">—</div><div class="card-sub" id="cCycleSub">—</div></div>
+      <!-- Extremes -->
+      <div class="card red"><div class="card-label">Peak Month</div><div class="card-value" id="cPeak">—</div><div class="card-sub" id="cPeakSub">—</div></div>
+      <div class="card green"><div class="card-label">Lowest Month</div><div class="card-value" id="cLow">—</div><div class="card-sub" id="cLowSub">—</div></div>
+      <div class="card green"><div class="card-label">Cheapest $/Therm</div><div class="card-value" id="cCheapest">—</div><div class="card-sub" id="cCheapestSub">—</div></div>
+      <div class="card red"><div class="card-label">Most Expensive $/Therm</div><div class="card-value" id="cPriciest">—</div><div class="card-sub" id="cPriciestSub">—</div></div>
+      <!-- Trends -->
+      <div class="card"><div class="card-label">Therms 3-Month Trend</div><div class="card-value" id="c3mo">—</div><div class="card-sub" id="c3moSub">—</div></div>
+      <div class="card purple"><div class="card-label">Avg Daily Therms</div><div class="card-value" id="cDailyTherms">—</div><div class="card-sub" id="cDailyThermsSub">—</div></div>
+    </div>
+
+    <div id="costSummary" style="background:var(--surface);border-radius:12px;padding:18px 22px;margin-bottom:20px;box-shadow:var(--shadow);border-top:4px solid var(--accent);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">Supply vs Delivery Cost Breakdown</div>
+          <div style="font-size:.75rem;color:var(--text3);margin-top:2px;" id="costSubtitle">Showing filtered months</div>
+        </div>
+        <div id="costBadge" style="font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--text3);">— months</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;border-left:4px solid #0891b2;">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0891b2;">🔥 Supply (BGS)</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <div id="supplyCost" style="font-size:1.7rem;font-weight:800;color:var(--text);">—</div>
+            <div id="supplyPct" style="font-size:1.1rem;font-weight:700;color:#0891b2;margin-left:auto;">—%</div>
+          </div>
+          <div style="margin-top:10px;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div id="supplyBar" style="height:100%;background:#0891b2;border-radius:4px;width:0%;transition:width .5s;"></div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;border-left:4px solid #38a169;">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#38a169;">🚚 Delivery (DEL)</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <div id="deliveryCost" style="font-size:1.7rem;font-weight:800;color:var(--text);">—</div>
+            <div id="deliveryPct" style="font-size:1.1rem;font-weight:700;color:#38a169;margin-left:auto;">—%</div>
+          </div>
+          <div style="margin-top:10px;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div id="deliveryBar" style="height:100%;background:#38a169;border-radius:4px;width:0%;transition:width .5s;"></div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;border-left:4px solid #718096;">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#718096;">📋 Customer Charge</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <div id="customerCost" style="font-size:1.7rem;font-weight:800;color:var(--text);">—</div>
+            <div id="customerPct" style="font-size:1.1rem;font-weight:700;color:#718096;margin-left:auto;">—%</div>
+          </div>
+          <div style="margin-top:10px;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+            <div id="customerBar" style="height:100%;background:#718096;border-radius:4px;width:0%;transition:width .5s;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail" id="detailPanel">
+      <h3 id="detailTitle">Month Detail</h3>
+      <div class="detail-grid" id="detailGrid"></div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-box"><h3>Monthly Therms Usage</h3><svg id="thermsSvg" height="200"></svg></div>
+      <div class="chart-box"><h3>Monthly Cost ($)</h3><svg id="costSvg" height="200"></svg></div>
+    </div>
+
+    <div class="charts">
+      <div class="full-chart" style="margin-bottom:0">
+        <h3>Therms Usage vs Avg Temperature (°F)</h3>
+        <svg id="lineSvg" height="260"></svg>
+      </div>
+
+      <div class="full-chart" style="margin-bottom:0">
+        <h3>Supply vs Delivery vs Customer Charge by Month</h3>
+        <svg id="stackedSvg" height="260"></svg>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-box"><h3>Cost Per Day ($/day)</h3><svg id="cpdSvg" height="200"></svg></div>
+      <div class="chart-box"><h3>Cost per Therm Trend ($/Therm)</h3><svg id="rateSvg" height="200"></svg></div>
+    </div>
+
+    <div class="tbox">
+      <h3>Billing Detail — <span id="rowCount">0</span> records &nbsp;<span>Double-click Therms or Cost to edit</span></h3>
+      <table>
+        <thead><tr id="tableHead">
+          <th onclick="sortBy('date')" data-col="date">Period <span class="si" data-col="date">↕</span></th>
+          <th onclick="sortBy('therms')" data-col="therms">Therms <span class="si" data-col="therms">↕</span></th>
+          <th>Therms Δ</th>
+          <th onclick="sortBy('cost')" data-col="cost">Cost <span class="si" data-col="cost">↕</span></th>
+          <th>Cost Δ</th>
+          <th onclick="sortBy('perTherm')" data-col="perTherm">$/Therm <span class="si" data-col="perTherm">↕</span></th>
+          <th>vs Avg</th>
+          <th onclick="sortBy('dailyTherms')" data-col="dailyTherms">Daily Therms <span class="si" data-col="dailyTherms">↕</span></th>
+          <th onclick="sortBy('dailyCost')" data-col="dailyCost">Daily Cost <span class="si" data-col="dailyCost">↕</span></th>
+          <th onclick="sortBy('temp')" data-col="temp">Avg °F <span class="si" data-col="temp">↕</span></th>
+          <th onclick="sortBy('days')" data-col="days">Days <span class="si" data-col="days">↕</span></th>
+          <th onclick="sortBy('ccf')" data-col="ccf">CCF <span class="si" data-col="ccf">↕</span></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /appContent -->
+</div>
+<footer>NJNG Gas Dashboard &bull; Double-click Therms/Cost cells to edit &bull; <a href="extract.html" style="color:var(--accent);">Add new bill →</a></footer>
+
+<script>
+let ALL = [];
+let fd = [];
+let activeIdx = null;
+let sortField = 'date', sortDir = 1;
+
+// Load data.json on startup
+async function loadData() {
+  try {
+    const res = await fetch('data.json?v=' + Date.now());
+    if (!res.ok) throw new Error('Failed to load data.json');
+    ALL = await res.json();
+    fd = [...ALL];
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    populateFilters();
+    renderAll();
+  } catch (e) {
+    document.getElementById('loadingMsg').textContent = '⚠️ Could not load data.json. Make sure it exists in the same folder. (' + e.message + ')';
+  }
+}
+
+function populateFilters() {
+  const fFrom = document.getElementById('fFrom');
+  const fTo = document.getElementById('fTo');
+  fFrom.innerHTML = '';
+  fTo.innerHTML = '';
+  ALL.forEach((d,i) => {
+    fFrom.innerHTML += `<option value="${i}">${d.label}</option>`;
+    fTo.innerHTML += `<option value="${i}"${i===ALL.length-1?' selected':''}>${d.label}</option>`;
+  });
+}
+
+function applyFilters() {
+  const fi = +document.getElementById('fFrom').value;
+  const ti = +document.getElementById('fTo').value;
+  const s = document.getElementById('fSort').value;
+  fd = ALL.filter((_,i) => i >= fi && i <= ti);
+  sortField = s;
+  applySortToFd();
+  activeIdx = null;
+  document.getElementById('detailPanel').classList.remove('show');
+  renderAll();
+}
+
+function toggleDir() {
+  sortDir *= -1;
+  document.getElementById('dirBtn').textContent = sortDir === 1 ? '↑ Asc' : '↓ Desc';
+  applySortToFd();
+  renderAll();
+}
+
+function applySortToFd() {
+  if (sortField==='date') {
+    fd = [...fd].sort((a,b) => (ALL.indexOf(a)-ALL.indexOf(b)) * sortDir);
+  } else {
+    fd = [...fd].sort((a,b) => {
+      const va = sortField==='dailyTherms'?a.therms/a.days : sortField==='perTherm'?a.cost/a.therms : sortField==='dailyCost'?a.cost/a.days : a[sortField];
+      const vb = sortField==='dailyTherms'?b.therms/b.days : sortField==='perTherm'?b.cost/b.therms : sortField==='dailyCost'?b.cost/b.days : b[sortField];
+      return (va-vb)*sortDir;
+    });
+  }
+  updateSortIndicators();
+}
+
+function updateSortIndicators() {
+  document.querySelectorAll('.si').forEach(el => {
+    el.textContent = el.dataset.col===sortField ? (sortDir===1?' ↑':' ↓') : ' ↕';
+  });
+}
+
+function sortBy(field) {
+  if (sortField===field) { sortDir*=-1; } else { sortField=field; sortDir=1; }
+  document.getElementById('dirBtn').textContent = sortDir===1?'↑ Asc':'↓ Desc';
+  applySortToFd();
+  renderAll();
+}
+
+function resetFilters() {
+  document.getElementById('fFrom').value=0;
+  document.getElementById('fTo').value=ALL.length-1;
+  document.getElementById('fSort').value='date';
+  sortField='date'; sortDir=1;
+  document.getElementById('dirBtn').textContent='↑ Asc';
+  fd=[...ALL]; activeIdx=null;
+  document.getElementById('detailPanel').classList.remove('show');
+  updateSortIndicators();
+  renderAll();
+}
+
+function renderAll() {
+  renderCostSummary();
+  renderCards();
+  renderBarSvg('thermsSvg', fd.map(d=>d.therms), '#0891b2', '', true);
+  renderBarSvg('costSvg', fd.map(d=>Math.round(d.cost)), '#dd6b20', '$', false);
+  renderCostPerDay();
+  renderRateTrend();
+  renderLineSvg();
+  renderStackedBar();
+  renderTable();
+}
+
+function renderCostSummary() {
+  let months = activeIdx !== null ? [ALL[activeIdx]] : fd;
+  const totalSupply = months.reduce((s,d) => s + (d.supplyCost||0), 0);
+  const totalDelivery = months.reduce((s,d) => s + (d.deliveryCost||0), 0);
+  const totalCustomer = months.reduce((s,d) => s + (d.customerCharge||0), 0);
+  const total = totalSupply + totalDelivery + totalCustomer;
+  const pct = v => total > 0 ? (v/total*100).toFixed(1) : 0;
+  document.getElementById('supplyCost').textContent  = '$'+totalSupply.toFixed(2);
+  document.getElementById('deliveryCost').textContent = '$'+totalDelivery.toFixed(2);
+  document.getElementById('customerCost').textContent = '$'+totalCustomer.toFixed(2);
+  document.getElementById('supplyPct').textContent  = pct(totalSupply) + '%';
+  document.getElementById('deliveryPct').textContent = pct(totalDelivery) + '%';
+  document.getElementById('customerPct').textContent = pct(totalCustomer) + '%';
+  document.getElementById('supplyBar').style.width  = pct(totalSupply) + '%';
+  document.getElementById('deliveryBar').style.width = pct(totalDelivery) + '%';
+  document.getElementById('customerBar').style.width = pct(totalCustomer) + '%';
+  const n = months.length;
+  document.getElementById('costBadge').textContent = n + (activeIdx !== null ? ' selected' : ' months');
+  document.getElementById('costSubtitle').textContent = activeIdx !== null
+    ? `Selected: ${ALL[activeIdx].label} — ${ALL[activeIdx].period}`
+    : `Aggregated across ${n} month${n !== 1 ? 's' : ''} in current filter`;
+}
+
+function renderCards() {
+  if (!fd.length) return;
+  const totalTherms = fd.reduce((s,d)=>s+d.therms,0);
+  const totalCost = fd.reduce((s,d)=>s+d.cost,0);
+  const peak = fd.reduce((a,b)=>a.therms>b.therms?a:b);
+  const low = fd.reduce((a,b)=>a.therms<b.therms?a:b);
+  const avg = totalTherms/fd.length;
+  document.getElementById('cTherms').textContent = totalTherms.toFixed(1);
+  document.getElementById('cThermsSub').textContent = fd.length + ' months shown';
+  document.getElementById('cCost').textContent = '$'+totalCost.toFixed(2);
+  document.getElementById('cPeak').textContent = peak.label;
+  document.getElementById('cPeakSub').textContent = peak.therms.toFixed(1)+' Therms / $'+peak.cost.toFixed(2);
+  document.getElementById('cLow').textContent = low.label;
+  document.getElementById('cLowSub').textContent = low.therms.toFixed(1)+' Therms / $'+low.cost.toFixed(2);
+  document.getElementById('cAvg').textContent = avg.toFixed(1);
+  document.getElementById('cAvgSub').textContent = 'Avg cost: $'+(totalCost/fd.length).toFixed(2)+'/mo';
+  const projected=(totalCost/fd.length)*12;
+  document.getElementById('cProjected').textContent='$'+Math.round(projected).toLocaleString();
+  document.getElementById('cProjectedSub').textContent='Based on $'+(totalCost/fd.length).toFixed(0)+'/mo avg';
+  const totalDays=fd.reduce((s,d)=>s+d.days,0);
+  document.getElementById('cDailyCost').textContent='$'+(totalCost/totalDays).toFixed(2);
+  document.getElementById('cDailyCostSub').textContent='Across '+totalDays+' billing days';
+  document.getElementById('cDailyTherms').textContent=(totalTherms/totalDays).toFixed(2);
+  document.getElementById('cDailyThermsSub').textContent='Across '+totalDays+' billing days';
+  const cheapest=fd.reduce((a,b)=>(a.cost/a.therms)<(b.cost/b.therms)?a:b);
+  document.getElementById('cCheapest').textContent=cheapest.label;
+  document.getElementById('cCheapestSub').textContent='$'+(cheapest.cost/cheapest.therms).toFixed(4)+'/Therm';
+  const priciest=fd.reduce((a,b)=>(a.cost/a.therms)>(b.cost/b.therms)?a:b);
+  document.getElementById('cPriciest').textContent=priciest.label;
+  document.getElementById('cPriciestSub').textContent='$'+(priciest.cost/priciest.therms).toFixed(4)+'/Therm';
+  // 3-month therms trend (last 3 vs prior 3, using date-sorted ALL)
+  const sorted=[...fd].sort((a,b)=>ALL.indexOf(a)-ALL.indexOf(b));
+  if(sorted.length>=6){
+    const last3=sorted.slice(-3).reduce((s,d)=>s+d.therms,0);
+    const prev3=sorted.slice(-6,-3).reduce((s,d)=>s+d.therms,0);
+    const pct=((last3-prev3)/prev3*100).toFixed(1);
+    document.getElementById('c3mo').textContent=(pct>0?'+':'')+pct+'%';
+    document.getElementById('c3moSub').textContent=(pct<0?'▼ Down':'▲ Up')+' vs prior 3 months';
+  } else {
+    document.getElementById('c3mo').textContent='N/A';
+    document.getElementById('c3moSub').textContent='Need 6+ months';
+  }
+  // Avg billing cycle
+  const avgDays=(fd.reduce((s,d)=>s+d.days,0)/fd.length).toFixed(1);
+  const minD=Math.min(...fd.map(d=>d.days)), maxD=Math.max(...fd.map(d=>d.days));
+  document.getElementById('cCycle').textContent=avgDays+' days';
+  document.getElementById('cCycleSub').textContent='Range: '+minD+'–'+maxD+' days';
+}
+
+function renderBarSvg(svgId, values, baseColor, prefix, dec) {
+  const dark = document.body.classList.contains('dark');
+  const svg = document.getElementById(svgId);
+  const W = svg.parentElement.clientWidth - 40;
+  const H = 210, PAD_T=22, LABEL_H=30;
+  const barH = H - PAD_T - LABEL_H;
+  const n = values.length;
+  const max = Math.max(...values);
+  const gapR = 0.22, totalW = W - 16, stepW = totalW/n, barW = stepW*(1-gapR);
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  let html = '';
+  values.forEach((v,i) => {
+    const bh = (v/max)*barH, x = 8 + i*stepW + stepW*gapR/2, y = PAD_T + barH - bh;
+    const origIdx = ALL.indexOf(fd[i]);
+    const isActive = origIdx === activeIdx;
+    const col = isActive ? '#0c4a6e' : baseColor;
+    const lbl = prefix+(dec?v.toFixed(1):v.toLocaleString());
+    const cx = (x+barW/2).toFixed(1);
+    html += `<g style="cursor:pointer" onclick="showDetail(${origIdx})">
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${col}" rx="3" opacity="${isActive?1:0.85}"><title>${fd[i].label}: ${lbl}</title></rect>
+      <text x="${cx}" y="${(y-4).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="600" fill="${dark?'#a0aec0':'#4a5568'}">${lbl}</text>
+      <text x="${cx}" y="${(H-LABEL_H+14).toFixed(1)}" text-anchor="middle" font-size="9" fill="${dark?'#718096':'#718096'}">${fd[i].label}</text>
+    </g>`;
+  });
+  svg.innerHTML = html;
+}
+
+function renderLineSvg() {
+  const dark = document.body.classList.contains('dark');
+  const svg = document.getElementById('lineSvg');
+  const W = svg.parentElement.clientWidth - 40;
+  const H=260, PAD_T=50, LABEL_H=30, plotH=H-PAD_T-LABEL_H;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  const n=fd.length;
+  if(!n){svg.innerHTML='';return;}
+  const maxK=Math.max(...fd.map(d=>d.therms));
+  const temps=fd.map(d=>d.temp).filter(t=>t!==null&&t!==undefined);
+  const minT=temps.length?Math.min(...temps):0, maxT=temps.length?Math.max(...temps):1;
+  const yTemp=v=>PAD_T+plotH-((v-minT)/(maxT-minT||1))*plotH;
+  const gapR=0.22, stepW=(W-16)/n, barW=stepW*(1-gapR);
+  const valCol=dark?'#a0aec0':'#4a5568', lblCol='#718096';
+  const legend=`<g transform="translate(8,10)">
+    <rect x="0" y="0" width="10" height="10" fill="#67e8f9" rx="2"/>
+    <text x="14" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Therms Usage</text>
+    <line x1="100" y1="5" x2="120" y2="5" stroke="#e53e3e" stroke-width="2" stroke-dasharray="4,2"/>
+    <circle cx="110" cy="5" r="3" fill="#e53e3e"/>
+    <text x="124" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Avg Temp °F</text>
+  </g>`;
+  let bars='', tempPath='', tempDots='', tempTxt='', barVals='', monthLbls='', pathStarted=false;
+  fd.forEach((d,i)=>{
+    const x=8+i*stepW+stepW*gapR/2, cx=(x+barW/2).toFixed(1);
+    const bh=(d.therms/maxK)*plotH, by=PAD_T+plotH-bh;
+    const oi=ALL.indexOf(d), isActive=oi===activeIdx;
+    bars+=`<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${isActive?'#0c4a6e':'#67e8f9'}" rx="3" opacity="${isActive?1:0.85}" style="cursor:pointer" onclick="showDetail(${oi})"><title>${d.label}: ${d.therms.toFixed(1)} Therms${d.temp!==null?', '+d.temp+'°F':''}</title></rect>`;
+    const barValY=by-5;
+    barVals+=`<text x="${cx}" y="${barValY.toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${valCol}">${d.therms.toFixed(1)}</text>`;
+    if(d.temp!==null&&d.temp!==undefined){
+      const tx=+cx, ty=yTemp(d.temp);
+      tempPath+=(pathStarted?'L':'M')+`${tx.toFixed(1)},${ty.toFixed(1)} `;
+      pathStarted=true;
+      tempDots+=`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="4" fill="#e53e3e" stroke="${dark?'#1a1f2e':'white'}" stroke-width="1.5"><title>${d.label}: ${d.temp}°F</title></circle>`;
+      const tAbove=ty-9, tBelow=ty+16;
+      let tLabelY = ty>PAD_T+15 ? tAbove : tBelow;
+      if(Math.abs(tLabelY-barValY)<14) tLabelY = tLabelY===tAbove ? tBelow : tAbove;
+      if(Math.abs(tLabelY-barValY)<14) tLabelY = tLabelY>barValY ? barValY+14 : barValY-14;
+      tempTxt+=`<text x="${tx.toFixed(1)}" y="${tLabelY.toFixed(1)}" text-anchor="middle" font-size="8" font-weight="700" fill="#e53e3e">${d.temp}°</text>`;
+    } else {
+      pathStarted=false;
+    }
+    monthLbls+=`<text x="${cx}" y="${(H-LABEL_H+14).toFixed(1)}" text-anchor="middle" font-size="9" fill="${lblCol}">${d.label}</text>`;
+  });
+  svg.innerHTML=`${legend}${bars}<path d="${tempPath}" fill="none" stroke="#e53e3e" stroke-width="2.2" stroke-linejoin="round" stroke-dasharray="5,3"/>${tempDots}${tempTxt}${barVals}${monthLbls}`;
+}
+
+function renderStackedBar() {
+  const dark = document.body.classList.contains('dark');
+  const svg = document.getElementById('stackedSvg');
+  const W = svg.parentElement.clientWidth - 40;
+  const H=260, PAD_T=50, LABEL_H=30, barH=H-PAD_T-LABEL_H;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  const n=fd.length;
+  if(!n){svg.innerHTML='';return;}
+  const max=Math.max(...fd.map(d=>(d.supplyCost||0)+(d.deliveryCost||0)+(d.customerCharge||0)));
+  const gapR=0.22, stepW=(W-16)/n, barW=stepW*(1-gapR);
+  const valCol=dark?'#a0aec0':'#4a5568', lblCol='#718096';
+  const legend=`<g transform="translate(8,10)">
+    <rect x="0" y="0" width="10" height="10" fill="#0891b2" rx="2"/>
+    <text x="14" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Supply</text>
+    <rect x="70" y="0" width="10" height="10" fill="#38a169" rx="2"/>
+    <text x="84" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Delivery</text>
+    <rect x="150" y="0" width="10" height="10" fill="#718096" rx="2"/>
+    <text x="164" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Customer Charge</text>
+  </g>`;
+  let bars='', barVals='', monthLbls='';
+  fd.forEach((d,i)=>{
+    const x=8+i*stepW+stepW*gapR/2, cx=(x+barW/2).toFixed(1);
+    const origIdx=ALL.indexOf(d), isActive=origIdx===activeIdx, opacity=isActive?1:0.85;
+    const cust=d.customerCharge||0, sup=d.supplyCost||0, del=d.deliveryCost||0, total=cust+sup+del;
+    const custH=(cust/max)*barH, supH=(sup/max)*barH, delH=(del/max)*barH;
+    const custY=PAD_T+barH-custH, supY=custY-supH, delY=supY-delH;
+    bars+=`<g style="cursor:pointer" onclick="showDetail(${origIdx})">
+      <rect x="${x.toFixed(1)}" y="${custY.toFixed(1)}" width="${barW.toFixed(1)}" height="${custH.toFixed(1)}" fill="#718096" opacity="${opacity}"><title>${d.label} Customer Charge: $${cust.toFixed(2)}</title></rect>
+      <rect x="${x.toFixed(1)}" y="${supY.toFixed(1)}" width="${barW.toFixed(1)}" height="${supH.toFixed(1)}" fill="#0891b2" opacity="${opacity}"><title>${d.label} Supply: $${sup.toFixed(2)}</title></rect>
+      <rect x="${x.toFixed(1)}" y="${delY.toFixed(1)}" width="${barW.toFixed(1)}" height="${delH.toFixed(1)}" fill="#38a169" rx="3" opacity="${opacity}"><title>${d.label} Delivery: $${del.toFixed(2)}</title></rect>
+    </g>`;
+    barVals+=`<text x="${cx}" y="${(delY-5).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${valCol}">$${total.toFixed(0)}</text>`;
+    monthLbls+=`<text x="${cx}" y="${(H-LABEL_H+14).toFixed(1)}" text-anchor="middle" font-size="9" fill="${lblCol}">${d.label}</text>`;
+  });
+  svg.innerHTML=`${legend}${bars}${barVals}${monthLbls}`;
+}
+
+function renderTable() {
+  const tbody=document.getElementById('tbody');
+  tbody.innerHTML='';
+  document.getElementById('rowCount').textContent=fd.length;
+  const avgRate=fd.reduce((s,d)=>s+d.cost/d.therms,0)/fd.length;
+  fd.forEach(d=>{
+    const oi=ALL.indexOf(d), prev=oi>0?ALL[oi-1]:null;
+    const kd=prev?(d.therms-prev.therms).toFixed(1):null, cd=prev?d.cost-prev.cost:null;
+    const ks=kd!==null?`<span class="${kd>0?'up':'dn'}">${kd>0?'+':''}${kd}</span>`:'—';
+    const cs=cd!==null?`<span class="${cd>0?'up':'dn'}">${cd>0?'+$':'-$'}${Math.abs(cd).toFixed(2)}</span>`:'—';
+    const rate=d.cost/d.therms, delta=rate-avgRate;
+    const vsAvg=`<span class="tag ${delta<-0.02?'tag-eff-good':delta>0.05?'tag-eff-bad':'tag-eff-warn'}">${delta>=0?'+':''}$${delta.toFixed(3)}</span>`;
+    const tr=document.createElement('tr');
+    tr.className=oi===activeIdx?'active-row':'';
+    tr.innerHTML=`
+      <td>${d.period.replace('–',' – ')}</td>
+      <td class="editable-cell" data-idx="${oi}" data-field="therms" ondblclick="makeEdit(this)"><strong>${d.therms.toFixed(1)}</strong></td>
+      <td>${ks}</td>
+      <td class="editable-cell" data-idx="${oi}" data-field="cost" ondblclick="makeEdit(this)"><strong>$${d.cost.toFixed(2)}</strong></td>
+      <td>${cs}</td>
+      <td>$${rate.toFixed(3)}</td>
+      <td>${vsAvg}</td>
+      <td>${(d.therms/d.days).toFixed(2)}</td>
+      <td>$${(d.cost/d.days).toFixed(2)}</td>
+      <td>${d.temp!==null&&d.temp!==undefined?d.temp+'°F':'—'}</td>
+      <td>${d.days}</td><td>${d.ccf}</td>`;
+    tr.addEventListener('click',e=>{if(e.target.contentEditable==='true')return;showDetail(oi);});
+    tbody.appendChild(tr);
+  });
+}
+
+function makeEdit(el) {
+  el.contentEditable='true'; el.focus();
+  const r=document.createRange(); r.selectNodeContents(el);
+  window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+  el.onblur=()=>{
+    el.contentEditable='false';
+    const idx=+el.dataset.idx, field=el.dataset.field;
+    const v=parseFloat(el.textContent.replace(/[$,]/g,''));
+    if(!isNaN(v)&&v>=0){ALL[idx][field]=v; fd=fd.map(d=>ALL[ALL.indexOf(d)]);}
+    renderAll();
+  };
+}
+
+function showDetail(idx) {
+  activeIdx=activeIdx===idx?null:idx;
+  const panel=document.getElementById('detailPanel');
+  if(activeIdx===null){panel.classList.remove('show');renderAll();return;}
+  const d=ALL[idx], prev=idx>0?ALL[idx-1]:null;
+  panel.classList.add('show');
+  document.getElementById('detailTitle').textContent=`📋 ${d.label} — ${d.period}`;
+  const kd=prev?(d.therms-prev.therms).toFixed(1):null, cd=prev?d.cost-prev.cost:null;
+  document.getElementById('detailGrid').innerHTML=`
+    <div class="di"><div class="di-label">Therms Used</div><div class="di-value">${d.therms.toFixed(1)}</div></div>
+    <div class="di"><div class="di-label">CCF (Meter)</div><div class="di-value">${d.ccf}</div></div>
+    <div class="di"><div class="di-label">Total Cost</div><div class="di-value">$${d.cost.toFixed(2)}</div></div>
+    <div class="di"><div class="di-label">Days in Cycle</div><div class="di-value">${d.days}</div></div>
+    <div class="di"><div class="di-label">Daily Therms</div><div class="di-value">${(d.therms/d.days).toFixed(2)}</div></div>
+    <div class="di"><div class="di-label">Cost per Therm</div><div class="di-value">$${(d.cost/d.therms).toFixed(3)}</div></div>
+    <div class="di"><div class="di-label">Avg Temp</div><div class="di-value">${d.temp!==null&&d.temp!==undefined?d.temp+'°F':'N/A'}</div></div>
+    <div class="di"><div class="di-label">Supply Cost</div><div class="di-value" style="font-size:.9rem">$${(d.supplyCost||0).toFixed(2)}</div></div>
+    <div class="di"><div class="di-label">Delivery Cost</div><div class="di-value" style="font-size:.9rem">$${(d.deliveryCost||0).toFixed(2)}</div></div>
+    <div class="di"><div class="di-label">Therms vs Prev</div><div class="di-value" style="color:${kd>0?'var(--red)':kd<0?'var(--green)':'var(--text)'}">${kd!==null?(kd>0?'+':'')+kd:'—'}</div></div>
+    <div class="di"><div class="di-label">Cost vs Prev</div><div class="di-value" style="color:${cd>0?'var(--red)':cd<0?'var(--green)':'var(--text)'}">${cd!==null?(cd>0?'+$':'-$')+Math.abs(cd).toFixed(2):'—'}</div></div>`;
+  renderAll();
+}
+
+function toggleDark() { document.body.classList.toggle('dark'); renderAll(); }
+
+// ── Tooltip ─────────────────────────────────────────────
+function showTip(e,html){const t=document.getElementById('tip');t.innerHTML=html;t.style.display='block';moveTip(e);}
+function moveTip(e){const t=document.getElementById('tip');t.style.left=(e.clientX+14)+'px';t.style.top=(e.clientY-10)+'px';}
+function hideTip(){document.getElementById('tip').style.display='none';}
+
+// ── Shared line chart ────────────────────────────────────
+function lineChart(svgId, data, color, fmtFn, H) {
+  const dk = document.body.classList.contains('dark');
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const W = svg.parentElement.clientWidth - 40;
+  H = H || 200;
+  const PAD_T=24, PAD_B=28, PAD_L=52, PAD_R=18;
+  const plotW=W-PAD_L-PAD_R, plotH=H-PAD_T-PAD_B;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  const vals=data.map(d=>d.v);
+  const minV=Math.min(...vals), maxV=Math.max(...vals), range=maxV-minV||1;
+  const xOf=i=>PAD_L+(i/(data.length-1||1))*plotW;
+  const yOf=v=>PAD_T+plotH-((v-minV)/range)*plotH;
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const gridC=dk?'#2d3748':'#e2e8f0', lblC=dk?'#718096':'#718096', surfC=dk?'#1a1f2e':'#fff';
+  let grid='';
+  for(let i=0;i<=4;i++){
+    const v=minV+range*i/4, y=yOf(v);
+    grid+=`<line x1="${PAD_L}" y1="${y.toFixed(1)}" x2="${(W-PAD_R).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${gridC}" stroke-width="1"/>
+           <text x="${(PAD_L-5).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="8.5" fill="${lblC}">${fmtFn(v)}</text>`;
+  }
+  const avgY=yOf(avg);
+  const refLine=`<line x1="${PAD_L}" y1="${avgY.toFixed(1)}" x2="${(W-PAD_R).toFixed(1)}" y2="${avgY.toFixed(1)}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity=".45"/>
+    <text x="${(W-PAD_R+2).toFixed(1)}" y="${avgY.toFixed(1)}" dominant-baseline="middle" font-size="7.5" fill="${color}" opacity=".7">avg</text>`;
+  const path=data.map((d,i)=>`${i===0?'M':'L'}${xOf(i).toFixed(1)},${yOf(d.v).toFixed(1)}`).join(' ');
+  const fill=path+` L${xOf(data.length-1).toFixed(1)},${(PAD_T+plotH).toFixed(1)} L${PAD_L},${(PAD_T+plotH).toFixed(1)} Z`;
+  const uid='g'+svgId;
+  const activeLabel = activeIdx !== null ? ALL[activeIdx]?.label : null;
+  let dots='', lbels='';
+  data.forEach((d,i)=>{
+    const cx=xOf(i), cy=yOf(d.v);
+    const isActive = d.label === activeLabel;
+    const r = isActive ? 6 : 4;
+    const stroke = isActive ? '#fff' : surfC;
+    const sw = isActive ? 2 : 1.5;
+    dots+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${isActive?'#0c4a6e':color}" stroke="${stroke}" stroke-width="${sw}" style="cursor:pointer"
+      onmouseenter="showTip(event,'<b>${d.label}</b><br>${fmtFn(d.v)}')" onmousemove="moveTip(event)" onmouseleave="hideTip()"/>`;
+    if(isActive) dots+=`<text x="${cx.toFixed(1)}" y="${(cy-11).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${dk?'#22d3ee':'#0c4a6e'}">${fmtFn(d.v)}</text>`;
+    lbels+=`<text x="${cx.toFixed(1)}" y="${(H-5).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="${isActive?(dk?'#22d3ee':'#0891b2'):lblC}" font-weight="${isActive?'700':'400'}">${d.label}</text>`;
+  });
+  svg.innerHTML=`<defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${color}" stop-opacity=".18"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    ${grid}${refLine}<path d="${fill}" fill="url(#${uid})"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/>
+    ${dots}${lbels}`;
+}
+
+function renderCostPerDay() {
+  lineChart('cpdSvg', fd.map(d=>({label:d.label,v:d.cost/d.days})), '#dd6b20', v=>'$'+v.toFixed(2));
+}
+
+function renderRateTrend() {
+  lineChart('rateSvg', fd.map(d=>({label:d.label,v:d.cost/d.therms})), '#805ad5', v=>'$'+v.toFixed(3));
+}
+
+function exportCSV() {
+  const rows=[['Period','Days','Therms','CCF','Cost','$/Therm','Daily Therms','Avg Temp F','Supply Cost','Delivery Cost','Customer Charge'],
+    ...fd.map(d=>[d.period,d.days,d.therms.toFixed(2),d.ccf,d.cost.toFixed(2),(d.cost/d.therms).toFixed(4),(d.therms/d.days).toFixed(2),d.temp!==null&&d.temp!==undefined?d.temp:'',(d.supplyCost||0).toFixed(2),(d.deliveryCost||0).toFixed(2),(d.customerCharge||0).toFixed(2)])];
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
+  a.download='NJNG_Usage.csv'; a.click();
+}
+
+loadData();
+window.addEventListener('resize', renderAll);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+  let refreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshed) return;
+    refreshed = true;
+    location.reload();
+  });
+}
+</script>
+</body>
+</html>

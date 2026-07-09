@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Bill — NJNG Gas Dashboard</title>
+<style>
+  :root {
+    --bg:#f0f4f8; --surface:#fff; --surface2:#edf2f7; --text:#1a202c;
+    --text2:#4a5568; --text3:#718096; --border:#e2e8f0;
+    --accent:#0891b2; --green:#38a169; --red:#e53e3e;
+    --shadow:0 2px 10px rgba(0,0,0,0.08);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  header { background:linear-gradient(135deg,#0c4a6e,#0f766e); color:white; padding:22px 32px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  header h1 { font-size:1.3rem; font-weight:700; }
+  .hbtn { padding:7px 15px; border-radius:8px; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.15); color:white; cursor:pointer; font-size:.8rem; font-weight:600; text-decoration:none; display:inline-block; }
+  .hbtn:hover { background:rgba(255,255,255,.28); }
+  .container { max-width:760px; margin:0 auto; padding:32px 18px; }
+  .card { background:var(--surface); border-radius:14px; padding:28px; box-shadow:var(--shadow); margin-bottom:22px; }
+  .card h2 { font-size:1rem; font-weight:700; margin-bottom:6px; color:var(--text); }
+  .card p { font-size:.83rem; color:var(--text3); margin-bottom:18px; line-height:1.6; }
+  .btn { padding:11px 22px; border-radius:9px; border:none; cursor:pointer; font-size:.88rem; font-weight:700; color:white; background:var(--accent); width:100%; transition:opacity .15s; }
+  .btn:hover { opacity:.88; }
+  .btn.green { background:var(--green); }
+  .json-out { background:#1a202c; color:#67e8f9; border-radius:8px; padding:14px; font-family:monospace; font-size:.78rem; overflow-x:auto; white-space:pre; margin-bottom:14px; }
+  .steps { counter-reset:step; }
+  .step { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; font-size:.83rem; color:var(--text2); line-height:1.6; }
+  .step-num { background:var(--accent); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; flex-shrink:0; margin-top:1px; }
+  code { background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:monospace; font-size:.82em; }
+  .tip { background:#fffaf0; border:1px solid #f6e05e; border-radius:8px; padding:12px 15px; font-size:.8rem; color:#744210; margin-top:14px; line-height:1.6; }
+  .auto-badge { display:inline-block; padding:2px 8px; border-radius:20px; background:#c6f6d5; color:#276749; font-size:.7rem; font-weight:700; margin-left:8px; vertical-align:middle; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📄 Add New Bill</h1>
+    <p style="opacity:.75;font-size:.8rem;margin-top:3px;">Three options — all manual, no automated login required</p>
+  </div>
+  <a href="index.html" class="hbtn">← Back to Dashboard</a>
+</header>
+
+<div class="container">
+
+  <!-- First time setup -->
+  <details style="margin-bottom:22px;">
+    <summary style="cursor:pointer; background:var(--surface); border-radius:14px; padding:18px 24px; box-shadow:var(--shadow); font-size:.95rem; font-weight:700; color:var(--text); list-style:none; display:flex; align-items:center; gap:10px; border-left:4px solid var(--accent);">
+      <span>💻 First time on a new computer?</span>
+      <span style="margin-left:auto; font-size:.8rem; font-weight:400; color:var(--text3);">Click to expand setup instructions</span>
+    </summary>
+    <div style="background:var(--surface); border-radius:0 0 14px 14px; padding:24px 28px; box-shadow:var(--shadow); border-top:1px solid var(--border); margin-top:-6px;">
+
+      <p style="font-size:.83rem;color:var(--text3);margin-bottom:20px;line-height:1.6;">
+        Options A and B work from any browser with no setup. Only Option C (the script) requires the repo cloned locally with Python installed. Follow these steps once per machine.
+      </p>
+
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:12px;">Step 1 — Install Git (if not already installed)</div>
+      <div class="steps" style="margin-bottom:20px;">
+        <div class="step"><div class="step-num">1</div><div>Go to <strong>git-scm.com/download/win</strong> and download Git for Windows</div></div>
+        <div class="step"><div class="step-num">2</div><div>Run the installer — default options are fine</div></div>
+        <div class="step"><div class="step-num">3</div><div>Verify: open PowerShell and run <code>git --version</code> — should print a version number</div></div>
+      </div>
+
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:12px;">Step 2 — Install Python (if not already installed)</div>
+      <div class="steps" style="margin-bottom:20px;">
+        <div class="step"><div class="step-num">1</div><div>Go to <strong>python.org/downloads</strong> and download the latest Python 3.x installer</div></div>
+        <div class="step"><div class="step-num">2</div><div>Run the installer — <strong>check "Add Python to PATH"</strong> before clicking Install</div></div>
+        <div class="step"><div class="step-num">3</div><div>Verify: open PowerShell and run <code>python --version</code> — should print a version number</div></div>
+      </div>
+
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:12px;">Step 3 — Clone the repo</div>
+      <div class="steps" style="margin-bottom:20px;">
+        <div class="step"><div class="step-num">1</div><div>Open PowerShell and navigate to where you want the folder:<br><code>cd C:\Claude</code> (or wherever you prefer)</div></div>
+        <div class="step"><div class="step-num">2</div><div>Clone the repo:<br><code>git clone https://github.com/scammy37/njng-dashboard.git</code></div></div>
+        <div class="step"><div class="step-num">3</div><div>Enter the folder:<br><code>cd njng-dashboard</code></div></div>
+      </div>
+
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:12px;">Step 4 — Configure Git identity (first time only)</div>
+      <div class="steps" style="margin-bottom:20px;">
+        <div class="step"><div class="step-num">1</div><div>Run:<br>
+          <code>git config --global user.name "Michael Zagame"</code><br>
+          <code>git config --global user.email "michael.zagame@gmail.com"</code>
+        </div></div>
+        <div class="step"><div class="step-num">2</div><div>When you first push, GitHub will ask you to log in — use your GitHub credentials or a personal access token</div></div>
+      </div>
+
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:12px;">Step 5 — Test it</div>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div>From inside the <code>njng-dashboard</code> folder, run:<br><code>python serve.py</code></div></div>
+        <div class="step"><div class="step-num">2</div><div>Open <strong>http://localhost:8080</strong> — the dashboard should load with your live data</div></div>
+        <div class="step"><div class="step-num">3</div><div>You're ready to use Option C</div></div>
+      </div>
+
+      <div class="tip" style="margin-top:16px;">💡 <strong>Work PC note:</strong> some corporate networks block GitHub or require a VPN. If <code>git clone</code> fails, try connecting via VPN first or use Options A or B which only need a browser.</div>
+    </div>
+  </details>
+
+  <!-- Option A: Drop PDF + ask Claude -->
+  <div class="card" style="border-left:4px solid var(--green);">
+    <h2>📥 Option A — Drop the PDF + Ask Claude <span class="auto-badge">Easiest</span></h2>
+    <p>No login automation involved — you save the bill PDF yourself once a month, upload it to the repo, and ask Claude to do the rest.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div>Download the latest bill PDF from <strong>njng.com</strong> (My Account → Billing → View Bill)</div></div>
+      <div class="step"><div class="step-num">2</div><div>Go to <a href="https://github.com/scammy37/njng-dashboard/upload/main/incoming" target="_blank" style="color:var(--accent);">github.com/scammy37/njng-dashboard → incoming/</a> and upload the PDF (works from the GitHub mobile app or any browser — no computer needed)</div></div>
+      <div class="step"><div class="step-num">3</div><div>Message Claude (a Claude Code session with access to this repo): <strong>"process the new bill"</strong></div></div>
+      <div class="step"><div class="step-num">4</div><div>Claude parses the PDF, adds the entry to <code>data.json</code>, commits, and deletes the processed PDF — reload the dashboard in ~1 minute</div></div>
+    </div>
+    <div class="tip">💡 If Claude can't run the parser for some reason, it can still read the PDF directly and hand you the JSON — fall back to Option B below.</div>
+  </div>
+
+  <!-- Option B: Claude -->
+  <div class="card">
+    <h2>💬 Option B — Use Claude <span class="auto-badge" style="background:#bee3f8;color:#2b6cb0;">Any device</span></h2>
+    <p>Works on your phone, tablet, or any computer. Go to <a href="https://claude.ai" target="_blank" style="color:var(--accent);">claude.ai</a>, attach your NJNG gas bill PDF, and paste this prompt:</p>
+    <div class="json-out" id="claudePrompt" style="color:#e2e8f0;font-size:.8rem;white-space:pre-wrap;">Extract the billing data from this New Jersey Natural Gas (NJNG) bill and return a single JSON object in this exact format — no markdown, no explanation:
+
+{
+  "label": "Mon YY",
+  "period": "Mon DD–Mon DD, YYYY",
+  "days": 31,
+  "ccf": 63,
+  "therms": 66.72,
+  "cost": 128.44,
+  "supplyCost": 30.47,
+  "deliveryCost": 85.97,
+  "customerCharge": 12.00,
+  "temp": 45
+}
+
+Rules:
+- label = start month of billing period, 2-digit year (e.g. "May 26" for a May–Jun bill)
+- days = integer, number of days in the service period
+- ccf = integer, "100'S OF CUBIC FEET USED (CCF)" from the meter reading row
+- therms = number, "BILLING UNITS USED (THERMS)" from the meter reading row
+- cost = number, 2 decimal places — "THIS SERVICE PERIOD GAS CHARGES" only (exclude NJR Home Services warranty charges, sales tax, or prior balance/payment lines)
+- supplyCost = the "BGS" line from the Bill Calculation section
+- deliveryCost = sum of all "DEL" lines from the Bill Calculation section (there may be more than one if the rate changed mid-cycle)
+- customerCharge = the flat "Customer Charge" line
+- temp = "Avg Temp This Month" if a numeric value is shown, otherwise null</div>
+    <button class="btn green" style="margin-top:14px;" onclick="copyPrompt(this)">📋 Copy Prompt</button>
+
+    <div class="steps" style="margin-top:20px;">
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:10px;">Then commit it — pick whichever fits where you are:</div>
+      <div class="step"><div class="step-num">1</div><div>Copy the JSON entry Claude returns</div></div>
+      <div class="step"><div class="step-num">2</div><div>
+        <strong>From any device (phone, tablet, work PC):</strong> go to <a href="https://github.com/scammy37/njng-dashboard/blob/main/data.json" target="_blank" style="color:var(--accent);">github.com/scammy37/njng-dashboard → data.json</a>, click ✏️, paste the entry, click <strong>Commit changes</strong><br><br>
+        <strong>From your home PC:</strong> open <code>C:\Claude\njng-dashboard\data.json</code>, paste the entry, save, then run <code>git add data.json &amp;&amp; git commit -m "Add [Month] bill" &amp;&amp; git push</code>
+      </div></div>
+      <div class="step"><div class="step-num">3</div><div>Dashboard updates within ~1 minute — reload the page</div></div>
+    </div>
+  </div>
+
+  <!-- Option C: Script (home PC only) -->
+  <div class="card">
+    <h2>⚡ Option C — Run the Script <span class="auto-badge" style="background:#e9d8fd;color:#553c9a;">Home PC only</span></h2>
+    <p>Fastest when you're at your home PC. Two ways to do it, both update <code>data.json</code>, commit, and push in one step:</p>
+    <div class="steps">
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:10px;">Straight from the PDF (no Claude needed):</div>
+      <div class="step"><div class="step-num">1</div><div>Open PowerShell in <code>C:\Claude\njng-dashboard</code> (right-click folder → <strong>Open in Terminal</strong>)</div></div>
+      <div class="step"><div class="step-num">2</div><div>Run: <code>python scripts/process_bill.py path\to\bill.pdf</code></div></div>
+    </div>
+    <div class="steps" style="margin-top:16px;">
+      <div style="font-size:.82rem;font-weight:700;color:var(--text2);margin-bottom:10px;">Or from Claude's JSON (Option B):</div>
+      <div class="step"><div class="step-num">1</div><div>Get the JSON entry from Claude using the Option B prompt</div></div>
+      <div class="step"><div class="step-num">2</div><div>Run: <code>python add_bill.py</code> — paste the JSON and press Enter twice</div></div>
+      <div class="step"><div class="step-num">3</div><div>Review the values, press <strong>Y</strong> to commit and push — done</div></div>
+    </div>
+  </div>
+
+  <!-- Format reference -->
+  <div class="card">
+    <h2>📋 data.json Entry Format</h2>
+    <p>Each bill is one line. Your most recent entry for reference:</p>
+    <div class="json-out">{"label":"May 26","period":"May 07–Jun 08, 2026","days":32,"ccf":35,"therms":37.04,"cost":76.38,"supplyCost":16.92,"deliveryCost":47.46,"customerCharge":12.00,"temp":0}</div>
+    <div class="tip">
+      💡 <strong>temp:</strong> If your bill shows no numeric average temperature (NJNG sometimes leaves it blank for the current month), set it to <code>null</code>.<br><br>
+      💡 <strong>cost:</strong> Use "This Service Period Gas Charges" only — exclude the NJR Home Services warranty line and sales tax, those aren't gas usage.<br><br>
+      💡 <strong>deliveryCost:</strong> If NJNG changed rates mid-cycle you'll see two "DEL" lines in the Bill Calculation box — add them together.
+    </div>
+  </div>
+
+</div>
+
+<script>
+function copyPrompt(btn) {
+  const text = document.getElementById('claudePrompt').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Prompt', 2000);
+  });
+}
+</script>
+</body>
+</html>

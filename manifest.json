@@ -1,0 +1,17 @@
+{
+  "name": "NJNG Gas Dashboard",
+  "short_name": "NJNG Dashboard",
+  "description": "Personal natural gas usage and billing tracker",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#0c4a6e",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
