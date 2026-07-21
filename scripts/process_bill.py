@@ -32,10 +32,14 @@ def parse_pdf(pdf_path: Path) -> dict:
     with pdfplumber.open(pdf_path) as pdf:
         text = "\n".join(p.extract_text() or "" for p in pdf.pages)
 
-    # Service period + meter reading + therms + this-period gas charge, e.g.:
-    # "May 07 Jun 08 00833337 6242 - 6207 = 35 x 1.0584 = 37.04 76.38"
+    # Service period + meter reading + therms + this-period gas charge. The "-", "x", "="
+    # operators between numbers are sometimes present as real text and sometimes not
+    # (depends on the PDF template version), so they're treated as optional, e.g.:
+    #   "May 07 Jun 08 00833337 6242 - 6207 = 35 x 1.0584 = 37.04 76.38"   (newer template)
+    #   "Nov 01 Dec 03 00833337 4653 4563 90 1.061 95.46 154.39"          (older template)
     m = re.search(
-        r"(\w{3} \d{2})\s+(\w{3} \d{2})\s+\S+\s+[\d,]+\s*-\s*[\d,]+\s*=\s*([\d,]+)\s*x\s*([\d.]+)\s*=\s*([\d.]+)\s+([\d.]+)",
+        r"(\w{3} \d{1,2})\s+(\w{3} \d{1,2})\s+\d+\s+"
+        r"([\d,]+)\s*-?\s*([\d,]+)\s*=?\s*([\d,]+)\s*x?\s*([\d.]+)\s*=?\s*([\d.]+)\s+([\d.]+)",
         text,
     )
     if not m:
@@ -43,16 +47,18 @@ def parse_pdf(pdf_path: Path) -> dict:
         raise ValueError("Could not find service period / meter reading row in PDF — check the PDF format above.")
 
     start_str, end_str = m.group(1), m.group(2)
-    ccf    = int(m.group(3).replace(",", ""))
-    therms = float(m.group(5))
-    cost   = float(m.group(6))
+    ccf    = int(m.group(5).replace(",", ""))
+    therms = float(m.group(7))
+    cost   = float(m.group(8))
 
-    # Due date gives us the year context
-    ym = re.search(r"DUE DATE\s+\w+ \d{1,2},\s*(\d{4})", text)
+    # Due date gives us the year context. The label and its value can land on different
+    # lines (two-column layout gets interleaved by vertical position during extraction),
+    # so search across a short window after "DUE DATE" rather than requiring same-line.
+    ym = re.search(r"DUE DATE[\s\S]{0,60}?(\w+ \d{1,2}, \d{4})", text)
     if not ym:
         print(f"--- PDF text (first 2000 chars) ---\n{text[:2000]}\n---")
         raise ValueError("Could not find due date (for year) in PDF — check the PDF format above.")
-    due_year = int(ym.group(1))
+    due_year = int(ym.group(1).split(", ")[1])
 
     end_month  = MONTHS[end_str.split()[0]]
     start_month = MONTHS[start_str.split()[0]]
@@ -68,15 +74,16 @@ def parse_pdf(pdf_path: Path) -> dict:
     days = (date(end_year, end_month, int(end_str.split()[1])) -
             date(start_year, start_month, int(start_str.split()[1]))).days
 
-    # Bill calculation breakdown: BGS (supply) + one or more DEL (delivery) lines + customer charge
-    m = re.search(r"[\d.]+ Therms X ([\d.]+) BGS\s*=\s*([\d.]+)", text)
-    supply_cost = float(m.group(2)) if m else None
+    # Bill calculation breakdown: BGS (supply) + one or more DEL (delivery) lines + one or
+    # more customer charge lines — any of these can repeat if a rate changed mid-cycle.
+    supply_lines = re.findall(r"[\d.]+ Therms X ([\d.]+) BGS\s*=\s*([\d.]+)", text)
+    supply_cost = round(sum(float(v) for _, v in supply_lines), 2) if supply_lines else None
 
     delivery_cost = sum(float(v) for v in re.findall(r"[\d.]+ Therms X [\d.]+ DEL\s*=\s*([\d.]+)", text))
     delivery_cost = round(delivery_cost, 2) if delivery_cost else None
 
-    m = re.search(r"Customer Charge\s*=\s*([\d.]+)", text)
-    customer_charge = float(m.group(1)) if m else None
+    customer_lines = re.findall(r"Customer Charge\s*=\s*([\d.]+)", text)
+    customer_charge = round(sum(float(v) for v in customer_lines), 2) if customer_lines else None
 
     # Avg temp — NJNG shows "*-" or similar when not available for the current month
     temp = None
@@ -116,35 +123,43 @@ def update_data_json(entry: dict) -> bool:
     return True
 
 
-def find_incoming_pdf() -> Path:
+def find_incoming_pdfs() -> list[Path]:
     pdfs = sorted(INCOMING_DIR.glob("*.pdf"))
     if not pdfs:
         raise FileNotFoundError(
             f"No PDF found in {INCOMING_DIR}/ — drop the bill PDF there, or pass a path directly."
         )
-    if len(pdfs) > 1:
-        raise ValueError(
-            f"Multiple PDFs found in {INCOMING_DIR}/ — pass the one to process as an argument: "
-            f"{[p.name for p in pdfs]}"
-        )
-    return pdfs[0]
+    return pdfs
 
 
-def main():
-    pdf_path = Path(sys.argv[1]) if len(sys.argv) >= 2 else find_incoming_pdf()
-
+def process_one(pdf_path: Path):
     entry = parse_pdf(pdf_path)
     print(f"\nParsed entry:\n{json.dumps(entry, indent=2)}")
     added = update_data_json(entry)
 
-    if added and pdf_path.resolve().is_relative_to(INCOMING_DIR.resolve()):
+    if pdf_path.resolve().is_relative_to(INCOMING_DIR.resolve()):
         pdf_path.unlink()
         print(f"Removed processed PDF: {pdf_path}")
 
     if added:
         print(f"\n✓ NEW bill added: {entry['label']} | {entry['therms']} Therms | ${entry['cost']:.2f}")
     else:
-        print(f"\nNo update: {entry['label']} already in dashboard")
+        print(f"\nNo update: {entry['label']} already in dashboard — PDF discarded as a duplicate")
+
+
+def main():
+    if len(sys.argv) >= 2:
+        process_one(Path(sys.argv[1]))
+        return
+
+    pdf_paths = find_incoming_pdfs()
+    print(f"Found {len(pdf_paths)} PDF(s) in {INCOMING_DIR}/")
+    for pdf_path in pdf_paths:
+        print(f"\n{'='*60}\n{pdf_path.name}\n{'='*60}")
+        try:
+            process_one(pdf_path)
+        except Exception as e:
+            print(f"⚠️  Failed to process {pdf_path.name}: {e}")
 
 
 if __name__ == "__main__":
