@@ -16,6 +16,7 @@
   {"label":"Jan 26","period":"Jan 07–Feb 04, 2026","days":28,"ccf":182,"therms":192.85,"cost":348.84,"supplyCost":88.07,"deliveryCost":248.77,"customerCharge":12.0,"temp":null},
   {"label":"Feb 26","period":"Feb 04–Mar 06, 2026","days":30,"ccf":175,"therms":185.9,"cost":336.71,"supplyCost":84.9,"deliveryCost":239.81,"customerCharge":12.0,"temp":null},
   {"label":"Mar 26","period":"Mar 07–Apr 07, 2026","days":31,"ccf":63,"therms":66.72,"cost":128.44,"supplyCost":30.47,"deliveryCost":85.97,"customerCharge":12.0,"temp":null},
+  {"label":"Apr 26","period":"Apr 08–May 06, 2026","days":28,"ccf":50,"therms":52.96,"cost":104.05,"supplyCost":24.19,"deliveryCost":67.86,"customerCharge":12.0,"temp":58},
   {"label":"May 26","period":"May 07–Jun 08, 2026","days":32,"ccf":35,"therms":37.04,"cost":76.38,"supplyCost":16.92,"deliveryCost":47.46,"customerCharge":12.0,"temp":0},
   {"label":"Jun 26","period":"Jun 09–Jul 09, 2026","days":30,"ccf":22,"therms":23.25,"cost":52.41,"supplyCost":10.62,"deliveryCost":29.79,"customerCharge":12.0,"temp":null}
 ]
