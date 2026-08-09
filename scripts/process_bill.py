@@ -91,6 +91,12 @@ def parse_pdf(pdf_path: Path) -> dict:
     if m:
         temp = int(m.group(1))
 
+    # Non-gas charges (e.g. NJR Home Services contract renewals) ride along on the same bill
+    # but aren't part of the gas cost — kept separate so they never inflate cost/$-per-therm.
+    other_lines = re.findall(r"NJR Home Svcs:\s*(.+?)\s+([\d.]+)\s*$", text, re.MULTILINE)
+    other_charges = round(sum(float(amt) for _, amt in other_lines), 2) if other_lines else None
+    other_charges_note = "; ".join(f"{desc.strip()} ${amt}" for desc, amt in other_lines) or None
+
     return {
         "label":          label,
         "period":         period,
@@ -102,6 +108,8 @@ def parse_pdf(pdf_path: Path) -> dict:
         "deliveryCost":   delivery_cost,
         "customerCharge": customer_charge,
         "temp":           temp,
+        "otherCharges":     other_charges,
+        "otherChargesNote": other_charges_note,
     }
 
 
