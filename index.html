@@ -193,12 +193,12 @@
     </div>
 
     <div class="charts">
-      <div class="full-chart" style="margin-bottom:0" id="tempChartBox">
+      <div class="full-chart" style="margin-bottom:0">
         <h3>Therms Usage vs Avg Temperature (°F)</h3>
         <svg id="lineSvg" height="260"></svg>
       </div>
 
-      <div class="full-chart" style="margin-bottom:0" id="stackedChartBox">
+      <div class="full-chart" style="margin-bottom:0">
         <h3>Supply vs Delivery vs Customer Charge by Month</h3>
         <svg id="stackedSvg" height="260"></svg>
       </div>
@@ -222,7 +222,7 @@
           <th>vs Avg</th>
           <th onclick="sortBy('dailyTherms')" data-col="dailyTherms">Daily Therms <span class="si" data-col="dailyTherms">↕</span></th>
           <th onclick="sortBy('dailyCost')" data-col="dailyCost">Daily Cost <span class="si" data-col="dailyCost">↕</span></th>
-          <th class="temp-col" onclick="sortBy('temp')" data-col="temp">Avg °F <span class="si" data-col="temp">↕</span></th>
+          <th onclick="sortBy('temp')" data-col="temp">Avg °F <span class="si" data-col="temp">↕</span></th>
           <th onclick="sortBy('days')" data-col="days">Days <span class="si" data-col="days">↕</span></th>
           <th onclick="sortBy('ccf')" data-col="ccf">CCF <span class="si" data-col="ccf">↕</span></th>
         </tr></thead>
@@ -324,35 +324,24 @@ function resetFilters() {
   renderAll();
 }
 
-// Only NJNG's newer bill template prints "Avg Temp This Month", so early bills have no
-// reading at all. Plotting two lone dots across two years reads as broken data rather than
-// a trend, so the temperature chart and column stay hidden until enough bills carry one —
-// at which point they reappear on their own, with no code change needed.
+// Only NJNG's newer bill template prints "Avg Temp This Month", so early bills carry no
+// reading. The chart itself always shows (matching the JCPL dashboard); just the temperature
+// series waits until enough bills have a reading to form a trend rather than a couple of
+// stray dots. Every new bill includes one, so the line starts drawing on its own.
 const TEMP_MIN_POINTS = 3, TEMP_MIN_COVERAGE = 0.5;
 function hasTempCoverage() {
   const withTemp = fd.filter(d => d.temp !== null && d.temp !== undefined).length;
   return withTemp >= TEMP_MIN_POINTS && withTemp >= fd.length * TEMP_MIN_COVERAGE;
 }
 
-// Runs before the charts render: they size themselves from their container's width, so the
-// layout has to settle first. Table cells are handled in renderTable as rows are built.
-function applyTempVisibility() {
-  const show = hasTempCoverage();
-  document.getElementById('tempChartBox').style.display = show ? '' : 'none';
-  // Without its partner the stacked chart would sit in a half-width grid column.
-  document.getElementById('stackedChartBox').style.gridColumn = show ? '' : '1 / -1';
-  document.querySelectorAll('#tableHead .temp-col').forEach(el => el.style.display = show ? '' : 'none');
-}
-
 function renderAll() {
-  applyTempVisibility();
   renderCostSummary();
   renderCards();
   renderBarSvg('thermsSvg', fd.map(d=>d.therms), '#0891b2', '', true);
   renderBarSvg('costSvg', fd.map(d=>Math.round(d.cost)), '#dd6b20', '$', false);
   renderCostPerDay();
   renderRateTrend();
-  if (hasTempCoverage()) renderLineSvg();
+  renderLineSvg();
   renderStackedBar();
   renderTable();
 }
@@ -481,12 +470,14 @@ function renderLineSvg() {
   const yTemp=v=>PAD_T+plotH-((v-minT)/(maxT-minT||1))*plotH;
   const gapR=0.22, stepW=(W-16)/n, barW=stepW*(1-gapR);
   const valCol=dark?'#a0aec0':'#4a5568', lblCol='#718096';
+  const showTemp=hasTempCoverage();
   const legend=`<g transform="translate(8,10)">
     <rect x="0" y="0" width="10" height="10" fill="#67e8f9" rx="2"/>
     <text x="14" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Therms Usage</text>
-    <line x1="100" y1="5" x2="120" y2="5" stroke="#e53e3e" stroke-width="2" stroke-dasharray="4,2"/>
+    ${showTemp?`<line x1="100" y1="5" x2="120" y2="5" stroke="#e53e3e" stroke-width="2" stroke-dasharray="4,2"/>
     <circle cx="110" cy="5" r="3" fill="#e53e3e"/>
-    <text x="124" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Avg Temp °F</text>
+    <text x="124" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Avg Temp °F</text>`
+    :`<text x="100" y="5" dominant-baseline="middle" font-size="9.5" fill="${lblCol}" opacity=".8">Avg temp line starts once more bills include a reading</text>`}
   </g>`;
   let bars='', tempPath='', tempDots='', tempTxt='', barVals='', monthLbls='', pathStarted=false;
   fd.forEach((d,i)=>{
@@ -496,7 +487,7 @@ function renderLineSvg() {
     bars+=`<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${isActive?'#0c4a6e':'#67e8f9'}" rx="3" opacity="${isActive?1:0.85}" style="cursor:pointer" onclick="showDetail(${oi})"><title>${d.label}: ${d.therms.toFixed(1)} Therms${d.temp!==null?', '+d.temp+'°F':''}</title></rect>`;
     const barValY=by-5;
     barVals+=`<text x="${cx}" y="${barValY.toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${valCol}">${d.therms.toFixed(1)}</text>`;
-    if(d.temp!==null&&d.temp!==undefined){
+    if(showTemp&&d.temp!==null&&d.temp!==undefined){
       const tx=+cx, ty=yTemp(d.temp);
       tempPath+=(pathStarted?'L':'M')+`${tx.toFixed(1)},${ty.toFixed(1)} `;
       pathStarted=true;
@@ -556,7 +547,6 @@ function renderTable() {
   tbody.innerHTML='';
   document.getElementById('rowCount').textContent=fd.length;
   const avgRate=fd.reduce((s,d)=>s+d.cost/d.therms,0)/fd.length;
-  const showTemp=hasTempCoverage();
   fd.forEach(d=>{
     const oi=ALL.indexOf(d), prev=oi>0?ALL[oi-1]:null;
     const kd=prev?(d.therms-prev.therms).toFixed(1):null, cd=prev?d.cost-prev.cost:null;
@@ -576,7 +566,7 @@ function renderTable() {
       <td>${vsAvg}</td>
       <td>${(d.therms/d.days).toFixed(2)}</td>
       <td>$${(d.cost/d.days).toFixed(2)}</td>
-      <td class="temp-col"${showTemp?'':' style="display:none"'}>${d.temp!==null&&d.temp!==undefined?d.temp+'°F':'—'}</td>
+      <td>${d.temp!==null&&d.temp!==undefined?d.temp+'°F':'—'}</td>
       <td>${d.days}</td><td>${d.ccf}</td>`;
     tr.addEventListener('click',e=>{if(e.target.contentEditable==='true')return;showDetail(oi);});
     tbody.appendChild(tr);
@@ -611,7 +601,7 @@ function showDetail(idx) {
     <div class="di"><div class="di-label">Days in Cycle</div><div class="di-value">${d.days}</div></div>
     <div class="di"><div class="di-label">Daily Therms</div><div class="di-value">${(d.therms/d.days).toFixed(2)}</div></div>
     <div class="di"><div class="di-label">Cost per Therm</div><div class="di-value">$${(d.cost/d.therms).toFixed(3)}</div></div>
-    ${d.temp!==null&&d.temp!==undefined?`<div class="di"><div class="di-label">Avg Temp</div><div class="di-value">${d.temp}°F</div></div>`:''}
+    <div class="di"><div class="di-label">Avg Temp</div><div class="di-value">${d.temp!==null&&d.temp!==undefined?d.temp+'°F':'N/A'}</div></div>
     <div class="di"><div class="di-label">Supply Cost</div><div class="di-value" style="font-size:.9rem">$${(d.supplyCost||0).toFixed(2)}</div></div>
     <div class="di"><div class="di-label">Delivery Cost</div><div class="di-value" style="font-size:.9rem">$${(d.deliveryCost||0).toFixed(2)}</div></div>
     <div class="di"><div class="di-label">Therms vs Prev</div><div class="di-value" style="color:${kd>0?'var(--red)':kd<0?'var(--green)':'var(--text)'}">${kd!==null?(kd>0?'+':'')+kd:'—'}</div></div>
