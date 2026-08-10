@@ -176,6 +176,10 @@
           </div>
         </div>
       </div>
+      <div id="otherChargesPanel" style="display:none;margin-top:14px;padding:11px 14px;background:var(--surface2);border-radius:8px;border-left:4px solid var(--orange);">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--orange);">🔧 Non-Gas Charges (excluded from all figures above)</div>
+        <div id="otherChargesDetail" style="font-size:.78rem;color:var(--text3);margin-top:5px;line-height:1.5;"></div>
+      </div>
     </div>
 
     <div class="detail" id="detailPanel">
@@ -353,6 +357,17 @@ function renderCostSummary() {
   document.getElementById('costSubtitle').textContent = activeIdx !== null
     ? `Selected: ${ALL[activeIdx].label} — ${ALL[activeIdx].period}`
     : `Aggregated across ${n} month${n !== 1 ? 's' : ''} in current filter`;
+
+  // NJR Home Services contracts / taxes ride along on the gas bill but aren't gas cost,
+  // so they're reported separately here and left out of every figure above.
+  const withOther = months.filter(d => d.otherCharges);
+  const panel = document.getElementById('otherChargesPanel');
+  if (!withOther.length) { panel.style.display = 'none'; return; }
+  const totalOther = withOther.reduce((s,d) => s + d.otherCharges, 0);
+  document.getElementById('otherChargesDetail').innerHTML =
+    `<strong style="color:var(--text);">$${totalOther.toFixed(2)}</strong> across ${withOther.length} bill${withOther.length!==1?'s':''} — ` +
+    withOther.map(d => `${d.label}: $${d.otherCharges.toFixed(2)} <span style="opacity:.75">(${d.otherChargesNote})</span>`).join(' &nbsp;•&nbsp; ');
+  panel.style.display = 'block';
 }
 
 function renderCards() {
@@ -533,7 +548,7 @@ function renderTable() {
       <td>${d.period.replace('–',' – ')}</td>
       <td class="editable-cell" data-idx="${oi}" data-field="therms" ondblclick="makeEdit(this)"><strong>${d.therms.toFixed(1)}</strong></td>
       <td>${ks}</td>
-      <td class="editable-cell" data-idx="${oi}" data-field="cost" ondblclick="makeEdit(this)"><strong>$${d.cost.toFixed(2)}</strong></td>
+      <td class="editable-cell" data-idx="${oi}" data-field="cost" ondblclick="makeEdit(this)"><strong>$${d.cost.toFixed(2)}</strong>${d.otherCharges?`<span title="Plus $${d.otherCharges.toFixed(2)} non-gas: ${d.otherChargesNote} — not counted in any gas figure" style="margin-left:5px;font-size:.68rem;font-weight:700;color:var(--orange);cursor:help;">🔧</span>`:''}</td>
       <td>${cs}</td>
       <td>$${rate.toFixed(3)}</td>
       <td>${vsAvg}</td>
@@ -578,7 +593,8 @@ function showDetail(idx) {
     <div class="di"><div class="di-label">Supply Cost</div><div class="di-value" style="font-size:.9rem">$${(d.supplyCost||0).toFixed(2)}</div></div>
     <div class="di"><div class="di-label">Delivery Cost</div><div class="di-value" style="font-size:.9rem">$${(d.deliveryCost||0).toFixed(2)}</div></div>
     <div class="di"><div class="di-label">Therms vs Prev</div><div class="di-value" style="color:${kd>0?'var(--red)':kd<0?'var(--green)':'var(--text)'}">${kd!==null?(kd>0?'+':'')+kd:'—'}</div></div>
-    <div class="di"><div class="di-label">Cost vs Prev</div><div class="di-value" style="color:${cd>0?'var(--red)':cd<0?'var(--green)':'var(--text)'}">${cd!==null?(cd>0?'+$':'-$')+Math.abs(cd).toFixed(2):'—'}</div></div>`;
+    <div class="di"><div class="di-label">Cost vs Prev</div><div class="di-value" style="color:${cd>0?'var(--red)':cd<0?'var(--green)':'var(--text)'}">${cd!==null?(cd>0?'+$':'-$')+Math.abs(cd).toFixed(2):'—'}</div></div>
+    ${d.otherCharges?`<div class="di" style="border-left:3px solid var(--orange)"><div class="di-label">Other Charges (non-gas)</div><div class="di-value" style="font-size:.9rem;color:var(--orange)" title="${d.otherChargesNote}">$${d.otherCharges.toFixed(2)}</div></div>`:''}`;
   renderAll();
 }
 
@@ -646,8 +662,9 @@ function renderRateTrend() {
 }
 
 function exportCSV() {
-  const rows=[['Period','Days','Therms','CCF','Cost','$/Therm','Daily Therms','Avg Temp F','Supply Cost','Delivery Cost','Customer Charge'],
-    ...fd.map(d=>[d.period,d.days,d.therms.toFixed(2),d.ccf,d.cost.toFixed(2),(d.cost/d.therms).toFixed(4),(d.therms/d.days).toFixed(2),d.temp!==null&&d.temp!==undefined?d.temp:'',(d.supplyCost||0).toFixed(2),(d.deliveryCost||0).toFixed(2),(d.customerCharge||0).toFixed(2)])];
+  const q=s=>`"${String(s).replace(/"/g,'""')}"`;
+  const rows=[['Period','Days','Therms','CCF','Cost','$/Therm','Daily Therms','Avg Temp F','Supply Cost','Delivery Cost','Customer Charge','Other Charges (non-gas)','Other Charges Detail'],
+    ...fd.map(d=>[q(d.period),d.days,d.therms.toFixed(2),d.ccf,d.cost.toFixed(2),(d.cost/d.therms).toFixed(4),(d.therms/d.days).toFixed(2),d.temp!==null&&d.temp!==undefined?d.temp:'',(d.supplyCost||0).toFixed(2),(d.deliveryCost||0).toFixed(2),(d.customerCharge||0).toFixed(2),d.otherCharges?d.otherCharges.toFixed(2):'',d.otherChargesNote?q(d.otherChargesNote):''])];
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download='NJNG_Usage.csv'; a.click();

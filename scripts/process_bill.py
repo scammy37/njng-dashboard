@@ -85,11 +85,16 @@ def parse_pdf(pdf_path: Path) -> dict:
     customer_lines = re.findall(r"Customer Charge\s*=\s*([\d.]+)", text)
     customer_charge = round(sum(float(v) for v in customer_lines), 2) if customer_lines else None
 
-    # Avg temp — NJNG shows "*-" or similar when not available for the current month
+    # Avg temp — NJNG shows "*-°" or a placeholder like "0°" when the reading isn't
+    # available. A monthly average below ~10°F is meteorologically impossible in NJ
+    # (coldest month averages here run high-20s), so treat those as missing rather
+    # than plotting a bogus zero on the temperature line.
+    TEMP_FLOOR_F = 10
     temp = None
     m = re.search(r"Avg Temp This Month:\s*(-?\d+)\s*°", text)
     if m:
-        temp = int(m.group(1))
+        parsed_temp = int(m.group(1))
+        temp = parsed_temp if parsed_temp > TEMP_FLOOR_F else None
 
     # Non-gas charges (e.g. NJR Home Services contract renewals) ride along on the same bill
     # but aren't part of the gas cost — kept separate so they never inflate cost/$-per-therm.

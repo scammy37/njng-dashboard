@@ -1,4 +1,4 @@
-const CACHE = 'njng-v1';
+const CACHE = 'njng-v2';
 const STATIC = ['./index.html', './extract.html', './icon.svg', './manifest.json'];
 
 // Install: cache static files
