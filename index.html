@@ -325,13 +325,13 @@ function resetFilters() {
 }
 
 // Only NJNG's newer bill template prints "Avg Temp This Month", so early bills carry no
-// reading. The chart itself always shows (matching the JCPL dashboard); just the temperature
-// series waits until enough bills have a reading to form a trend rather than a couple of
-// stray dots. Every new bill includes one, so the line starts drawing on its own.
-const TEMP_MIN_POINTS = 3, TEMP_MIN_COVERAGE = 0.5;
+// reading and never will. Readings always plot as dots; the connecting line waits for three,
+// enough to read as a trend. Judging that as a share of all months would never be met — the
+// old bills stay empty forever — so this counts readings, not coverage. The path itself
+// breaks across months that have no reading, so gaps are never bridged.
+const TEMP_MIN_POINTS = 3;
 function hasTempCoverage() {
-  const withTemp = fd.filter(d => d.temp !== null && d.temp !== undefined).length;
-  return withTemp >= TEMP_MIN_POINTS && withTemp >= fd.length * TEMP_MIN_COVERAGE;
+  return fd.filter(d => d.temp !== null && d.temp !== undefined).length >= TEMP_MIN_POINTS;
 }
 
 function renderAll() {
@@ -466,7 +466,16 @@ function renderLineSvg() {
   if(!n){svg.innerHTML='';return;}
   const maxK=Math.max(...fd.map(d=>d.therms));
   const temps=fd.map(d=>d.temp).filter(t=>t!==null&&t!==undefined);
-  const minT=temps.length?Math.min(...temps):0, maxT=temps.length?Math.max(...temps):1;
+  // Pad the temperature scale so readings don't sit pinned to the very top and bottom of the
+  // plot. With only a couple of readings a raw min/max domain turns a mild spread into what
+  // looks like a wild swing, so a minimum span is enforced before falling back to padding.
+  const TEMP_MIN_SPAN=30;
+  let minT=temps.length?Math.min(...temps):0, maxT=temps.length?Math.max(...temps):1;
+  if(temps.length){
+    const span=maxT-minT;
+    if(span<TEMP_MIN_SPAN){ const mid=(minT+maxT)/2; minT=mid-TEMP_MIN_SPAN/2; maxT=mid+TEMP_MIN_SPAN/2; }
+    else { const pad=span*0.1; minT-=pad; maxT+=pad; }
+  }
   const yTemp=v=>PAD_T+plotH-((v-minT)/(maxT-minT||1))*plotH;
   const gapR=0.22, stepW=(W-16)/n, barW=stepW*(1-gapR);
   const valCol=dark?'#a0aec0':'#4a5568', lblCol='#718096';
@@ -477,7 +486,9 @@ function renderLineSvg() {
     ${showTemp?`<line x1="100" y1="5" x2="120" y2="5" stroke="#e53e3e" stroke-width="2" stroke-dasharray="4,2"/>
     <circle cx="110" cy="5" r="3" fill="#e53e3e"/>
     <text x="124" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Avg Temp °F</text>`
-    :`<text x="100" y="5" dominant-baseline="middle" font-size="9.5" fill="${lblCol}" opacity=".8">Avg temp line starts once more bills include a reading</text>`}
+    :`<circle cx="105" cy="5" r="3" fill="#e53e3e"/>
+    <text x="114" y="5" dominant-baseline="middle" font-size="10" fill="${lblCol}">Avg Temp °F</text>
+    <text x="190" y="5" dominant-baseline="middle" font-size="9.5" fill="${lblCol}" opacity=".8">line starts once more bills include a reading</text>`}
   </g>`;
   let bars='', tempPath='', tempDots='', tempTxt='', barVals='', monthLbls='', pathStarted=false;
   fd.forEach((d,i)=>{
@@ -487,10 +498,13 @@ function renderLineSvg() {
     bars+=`<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${isActive?'#0c4a6e':'#67e8f9'}" rx="3" opacity="${isActive?1:0.85}" style="cursor:pointer" onclick="showDetail(${oi})"><title>${d.label}: ${d.therms.toFixed(1)} Therms${d.temp!==null?', '+d.temp+'°F':''}</title></rect>`;
     const barValY=by-5;
     barVals+=`<text x="${cx}" y="${barValY.toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${valCol}">${d.therms.toFixed(1)}</text>`;
-    if(showTemp&&d.temp!==null&&d.temp!==undefined){
+    if(d.temp!==null&&d.temp!==undefined){
       const tx=+cx, ty=yTemp(d.temp);
-      tempPath+=(pathStarted?'L':'M')+`${tx.toFixed(1)},${ty.toFixed(1)} `;
-      pathStarted=true;
+      // Readings always plot as dots; only the connecting line waits for enough coverage.
+      if(showTemp){
+        tempPath+=(pathStarted?'L':'M')+`${tx.toFixed(1)},${ty.toFixed(1)} `;
+        pathStarted=true;
+      }
       tempDots+=`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="4" fill="#e53e3e" stroke="${dark?'#1a1f2e':'white'}" stroke-width="1.5"><title>${d.label}: ${d.temp}°F</title></circle>`;
       const tAbove=ty-9, tBelow=ty+16;
       let tLabelY = ty>PAD_T+15 ? tAbove : tBelow;
