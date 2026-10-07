@@ -2,7 +2,7 @@
 
 Personal natural gas usage tracker — charts, filters, and billing history for New Jersey Natural Gas accounts.
 
-Live site: **https://scammy37.github.io/njng-dashboard** (after GitHub Pages is enabled — see below)
+Live site: **https://scammy37.github.io/njng-dashboard**
 
 ---
 
@@ -101,10 +101,7 @@ The dashboard is installable as a Progressive Web App. In Chrome/Edge, click the
 
 ---
 
-## Enabling GitHub Pages
+## Hosting
 
-This repo doesn't have Pages turned on yet. One-time setup:
-1. Go to **Settings → Pages** on this repo
-2. Under "Build and deployment", set **Source** to `Deploy from a branch`
-3. Set **Branch** to `main` / `/(root)`, click **Save**
-4. The site will be live at `https://scammy37.github.io/njng-dashboard` within a few minutes
+The dashboard is served by GitHub Pages from the `main` branch root. Every push
+or merge to `main` redeploys the site automatically within a minute or two.
