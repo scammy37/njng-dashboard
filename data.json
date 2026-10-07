@@ -20,5 +20,6 @@
   {"label":"May 26","period":"May 07–Jun 08, 2026","days":32,"ccf":35,"therms":37.04,"cost":76.38,"supplyCost":16.92,"deliveryCost":47.46,"customerCharge":12.0,"temp":null,"otherCharges":192.82,"otherChargesNote":"Service Contract(s) $180.84; Annual Sales Tax $11.98"},
   {"label":"Jun 26","period":"Jun 09–Jul 09, 2026","days":30,"ccf":22,"therms":23.25,"cost":52.41,"supplyCost":10.62,"deliveryCost":29.79,"customerCharge":12.0,"temp":null},
   {"label":"Jul 26","period":"Jul 10–Aug 07, 2026","days":28,"ccf":20,"therms":21.11,"cost":48.69,"supplyCost":9.64,"deliveryCost":27.05,"customerCharge":12.0,"temp":75,"otherCharges":214.77,"otherChargesNote":"Service Contract(s) $209.40; Annual Sales Tax $5.37"},
-  {"label":"Aug 26","period":"Aug 08–Sep 04, 2026","days":27,"ccf":22,"therms":23.24,"cost":52.39,"supplyCost":10.61,"deliveryCost":29.78,"customerCharge":12.0,"temp":74,"otherCharges":null,"otherChargesNote":null}
+  {"label":"Aug 26","period":"Aug 08–Sep 04, 2026","days":27,"ccf":22,"therms":23.24,"cost":52.39,"supplyCost":10.61,"deliveryCost":29.78,"customerCharge":12.0,"temp":74,"otherCharges":null,"otherChargesNote":null},
+  {"label":"Sep 26","period":"Sep 05–Oct 06, 2026","days":31,"ccf":31,"therms":32.71,"cost":66.51,"supplyCost":14.18,"deliveryCost":40.33,"customerCharge":12.0,"temp":67,"otherCharges":null,"otherChargesNote":null}
 ]
